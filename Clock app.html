@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Clock App</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #6d28d9, #312e81); /* Deep purple to indigo gradient */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            box-sizing: border-box;
+            color: #e2e8f0; /* Light text color */
+        }
+        .app-container {
+            background-color: rgba(255, 255, 255, 0.1); /* Slightly transparent white background */
+            backdrop-filter: blur(10px); /* Frosted glass effect */
+            border-radius: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); /* Stronger shadow */
+            max-width: 900px;
+            width: 100%;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+        }
+        .nav-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+        .nav-button {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: #e2e8f0;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            flex-grow: 1; /* Allows buttons to grow and fill space */
+            min-width: 120px; /* Minimum width for buttons */
+        }
+        .nav-button:hover:not(.active) {
+            background-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+        .nav-button.active {
+            background-color: #a78bfa; /* Purple-400 */
+            color: #1f2937; /* Dark text for active button */
+            box-shadow: 0 5px 15px rgba(167, 139, 250, 0.4);
+            transform: translateY(-1px);
+        }
+        .clock-section {
+            display: none; /* Hidden by default */
+            width: 100%;
+            padding-top: 1rem;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.2); /* Slightly darker background for active section */
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .clock-section.active {
+            display: flex; /* Show active section */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- Digital Clock Specific Styles (adapted) --- */
+        #digitalClockDisplay {
+            font-family: 'monospace', 'Inter', sans-serif;
+            font-size: 4.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05rem;
+            color: #81e6d9; /* Teal-300 */
+            text-shadow: 0 0 8px rgba(129, 230, 217, 0.6);
+        }
+        #digitalDateDisplay {
+            font-size: 1.2rem;
+            color: #a78bfa; /* Purple-400 */
+            margin-top: 0.5rem;
+        }
+        #digitalAmpmDisplay {
+            font-size: 1.5rem;
+            color: #fbd38d; /* Orange-200 */
+            font-weight: 600;
+        }
+        .digital-clock-time-ampm {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- Analog Clock Specific Styles (adapted) --- */
+        .analog-clock-face {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3), 0 5px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        .analog-clock-hand {
+            transform-origin: bottom center;
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform: translateX(-50%) rotate(0deg);
+            transition: transform 0.5s cubic-bezier(0.4, 2.3, 0.6, 1);
+        }
+        .analog-hour-hand {
+            width: 6px;
+            height: 60px;
+            background-color: #e2e8f0;
+            border-radius: 3px;
+            z-index: 20;
+        }
+        .analog-minute-hand {
+            width: 4px;
+            height: 90px;
+            background-color: #cbd5e0;
+            border-radius: 2px;
+            z-index: 30;
+        }
+        .analog-second-hand {
+            width: 1.5px;
+            height: 100px;
+            background-color: #f87171; /* Red */
+            border-radius: 1px;
+            z-index: 40;
+        }
+        .analog-center-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #a78bfa;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50;
+        }
+        .analog-mark {
+            position: absolute;
+            background-color: #a78bfa;
+            z-index: 10;
+        }
+        .analog-mark-hour {
+            width: 3px;
+            height: 10px;
+        }
+        .analog-mark-minute {
+            width: 1.5px;
+            height: 5px;
+            opacity: 0.7;
+        }
+
+        /* --- Timer/Stopwatch/Alarm Control Buttons --- */
+        .control-button {
+            padding: 0.6rem 1.2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: #1f2937;
+        }
+        .control-button.start-btn {
+            background-color: #4ade80; /* Green-300 */
+        }
+        .control-button.start-btn:hover:not(:disabled) {
+            background-color: #22c55e;
+            transform: translateY(-2px);
+        }
+        .control-button.pause-btn {
+            background-color: #fcd34d; /* Yellow-300 */
+        }
+        .control-button.pause-btn:hover:not(:disabled) {
+            background-color: #fbbf24;
+            transform: translateY(-2px);
+        }
+        .control-button.reset-btn {
+            background-color: #f87171; /* Red-400 */
+        }
+        .control-button.reset-btn:hover:not(:disabled) {
+            background-color: #ef4444;
+            transform: translateY(-2px);
+        }
+        .control-button.set-alarm-btn {
+            background-color: #a78bfa; /* Purple-400 */
+        }
+        .control-button.set-alarm-btn:hover:not(:disabled) {
+            background-color: #8b5cf6;
+            transform: translateY(-2px);
+        }
+        .control-button.stop-alarm-btn {
+            background-color: #f87171; /* Red-400 */
+        }
+        .control-button.stop-alarm-btn:hover:not(:disabled) {
+            background-color: #ef4444;
+            transform: translateY(-2px);
+        }
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* --- Timer Input Styles --- */
+        .timer-input-group input, .timer-input-group select {
+            width: 70px;
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #1f2937;
+            background-color: rgba(255, 255, 255, 0.8);
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        .timer-input-group input:focus, .timer-input-group select:focus {
+            outline: none;
+            border-color: #a78bfa;
+            box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.5);
+        }
+        .timer-input-group select {
+             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%231f2937' d='M10 12l-6-6 1.41-1.41L10 9.17l4.59-4.58L16 6z'/%3E%3C/svg%3E");
+             background-repeat: no-repeat;
+             background-position: right 0.5rem center;
+             background-size: 1rem;
+        }
+
+        /* --- Timer/Stopwatch/Alarm Display --- */
+        .timer-display {
+            font-family: 'monospace', 'Inter', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05rem;
+            color: #81e6d9; /* Teal-300 */
+            text-shadow: 0 0 8px rgba(129, 230, 217, 0.6);
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- World Clock Specific Styles --- */
+        .world-clock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+            width: 100%;
+        }
+        .world-city-card {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .world-city-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #a78bfa;
+            margin-bottom: 0.5rem;
+        }
+        .world-time-display {
+            font-family: 'monospace', 'Inter', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #81e6d9;
+        }
+        .world-date-display {
+            font-size: 0.85rem;
+            color: #cbd5e0;
+        }
+
+        /* --- Alarm List Styles --- */
+        .alarm-list-container {
+            margin-top: 2rem;
+            width: 100%;
+        }
+        .alarm-list-container h2 {
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+        }
+        #alarmList {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            max-height: 250px; /* Max height for scrollable list */
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .alarm-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease-in-out;
+        }
+        .alarm-item:last-child {
+            margin-bottom: 0;
+        }
+        .alarm-item span {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #cbd5e0;
+        }
+        .alarm-item .delete-button {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.3rem 0.7rem;
+            border-radius: 0.4rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .alarm-item .delete-button:hover {
+            background-color: #dc2626;
+        }
+        .alarm-item-ringing {
+            background-color: #fef2f2; /* Red-50 */
+            border-color: #f87171; /* Red-400 */
+            animation: pulse-ring 1s infinite alternate;
+            color: #be123c; /* Red-800 */
+        }
+        .alarm-item-ringing span {
+             color: #be123c; /* Red-800 */
+        }
+        @keyframes pulse-ring {
+            from {
+                box-shadow: 0 0 0 0px rgba(248, 113, 113, 0.7);
+            }
+            to {
+                box-shadow: 0 0 0 10px rgba(248, 113, 113, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <h1 class="text-4xl font-extrabold mb-8 text-center text-white"> Clock App</h1>
+
+        <div class="nav-buttons">
+            <button class="nav-button active" data-target="digital-clock">Digital Clock</button>
+            <button class="nav-button" data-target="analog-clock">Analog Clock</button>
+            <button class="nav-button" data-target="timer">Timer</button>
+            <button class="nav-button" data-target="stopwatch">Stopwatch</button>
+            <button class="nav-button" data-target="world-clock">World Clock</button>
+            <button class="nav-button" data-target="alarm-clock">Alarm</button>
+        </div>
+
+        <!-- Digital Clock Section -->
+        <div id="digital-clock" class="clock-section active">
+            <h2 class="text-3xl font-bold mb-4 text-white">Digital Clock</h2>
+            <div class="digital-clock-time-ampm">
+                <div id="digitalClockDisplay">00:00:00</div>
+                <div id="digitalAmpmDisplay">AM</div>
+            </div>
+            <div id="digitalDateDisplay">Monday, January 1, 2024</div>
+        </div>
+
+        <!-- Analog Clock Section -->
+        <div id="analog-clock" class="clock-section">
+            <h2 class="text-3xl font-bold mb-4 text-white">Analog Clock</h2>
+            <div class="analog-clock-face">
+                <div id="analog-hour" class="analog-clock-hand analog-hour-hand"></div>
+                <div id="analog-minute" class="analog-clock-hand analog-minute-hand"></div>
+                <div id="analog-second" class="analog-clock-hand analog-second-hand"></div>
+                <div class="analog-center-dot"></div>
+                <!-- Hour marks, dynamically generated or hardcoded for simplicity -->
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(0deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(30deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(60deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(90deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(120deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(150deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(180deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(210deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(240deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(270deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(300deg) translateY(-110px);"></div>
+                <div class="analog-mark analog-mark-hour" style="transform: translateY(-50%) rotate(330deg) translateY(-110px);"></div>
+            </div>
+        </div>
+
+        <!-- Timer Section -->
+        <div id="timer" class="clock-section">
+            <h2 class="text-3xl font-bold mb-4 text-white">Countdown Timer</h2>
+            <div class="flex items-center gap-2 mb-4 timer-input-group">
+                <input type="number" id="timerInputHours" min="0" max="99" value="00" placeholder="HH"> :
+                <input type="number" id="timerInputMinutes" min="0" max="59" value="00" placeholder="MM"> :
+                <input type="number" id="timerInputSeconds" min="0" max="59" value="00" placeholder="SS">
+            </div>
+            <div id="timerDisplay" class="timer-display">00:00:00</div>
+            <div class="flex gap-4 button-group">
+                <button id="timerStartButton" class="control-button start-btn">Start</button>
+                <button id="timerPauseButton" class="control-button pause-btn" disabled>Pause</button>
+                <button id="timerResetButton" class="control-button reset-btn" disabled>Reset</button>
+            </div>
+        </div>
+
+        <!-- Stopwatch Section -->
+        <div id="stopwatch" class="clock-section">
+            <h2 class="text-3xl font-bold mb-4 text-white">Stopwatch</h2>
+            <div id="stopwatchDisplay" class="timer-display">00:00:00</div>
+            <div class="flex gap-4 button-group">
+                <button id="stopwatchStartButton" class="control-button start-btn">Start</button>
+                <button id="stopwatchPauseButton" class="control-button pause-btn" disabled>Pause</button>
+                <button id="stopwatchResetButton" class="control-button reset-btn" disabled>Reset</button>
+            </div>
+        </div>
+
+        <!-- World Clock Section -->
+        <div id="world-clock" class="clock-section">
+            <h2 class="text-3xl font-bold mb-4 text-white">World Clock</h2>
+            <div id="worldClockGrid" class="world-clock-grid">
+                <!-- World clock cards will be inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Alarm Clock Section -->
+        <div id="alarm-clock" class="clock-section">
+            <h2 class="text-3xl font-bold mb-4 text-white">Alarm Clock</h2>
+            <div class="flex items-center gap-2 mb-4 timer-input-group">
+                <select id="alarmHours"></select> :
+                <select id="alarmMinutes"></select>
+                <select id="alarmAmpm">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </select>
+            </div>
+            <div class="flex gap-4 button-group">
+                <button id="setAlarmButton" class="control-button set-alarm-btn">Set Alarm</button>
+                <button id="stopAlarmButton" class="control-button stop-alarm-btn" disabled>Stop Alarm</button>
+            </div>
+
+            <div class="alarm-list-container">
+                <h3 class="text-2xl font-bold mb-4 text-white">Your Alarms</h3>
+                <div id="alarmList" class="space-y-3">
+                    <p class="text-gray-400 text-sm">No alarms set yet.</p>
+                </div>
+            </div>
+
+            <audio id="alarmSound" loop>
+                <source src="https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+    </div>
+
+    <script>
+        // --- Global Elements and Constants ---
+        const appContainer = document.querySelector('.app-container');
+        const navButtons = document.querySelectorAll('.nav-button');
+        const clockSections = document.querySelectorAll('.clock-section');
+
+        const alarmSound = document.getElementById('alarmSound');
+        let currentActiveModule = 'digital-clock'; // Keep track of the currently active module
+
+        // --- Utility Functions ---
+        /**
+         * Formats a number to always have two digits (e.g., 5 becomes "05").
+         * @param {number} num - The number to format.
+         * @returns {string} The formatted string.
+         */
+        function formatTimeTwoDigits(num) {
+            return String(num).padStart(2, '0');
+        }
+
+        /**
+         * Displays a simple alert message (can be replaced with a custom modal in production).
+         * @param {string} message - The message to display.
+         */
+        function alertMessage(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.textContent = message;
+            alertDiv.className = 'fixed top-4 right-4 bg-purple-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-transform transform translate-y-0 opacity-100';
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.classList.add('translate-y-full', 'opacity-0');
+                alertDiv.addEventListener('transitionend', () => alertDiv.remove());
+            }, 3000); // Remove after 3 seconds
+        }
+
+        // --- Navigation Logic ---
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+
+                // Deactivate current button and section
+                document.querySelector('.nav-button.active')?.classList.remove('active');
+                document.querySelector('.clock-section.active')?.classList.remove('active');
+
+                // Activate new button and section
+                button.classList.add('active');
+                document.getElementById(targetId).classList.add('active');
+
+                currentActiveModule = targetId; // Update active module tracker
+
+                // Specific initializations/resets when switching modules
+                switch (targetId) {
+                    case 'analog-clock':
+                        setAnalogClock(); // Ensure analog clock updates immediately
+                        break;
+                    case 'timer':
+                        // No specific reset needed beyond initial load
+                        break;
+                    case 'stopwatch':
+                        // No specific reset needed beyond initial load
+                        break;
+                    case 'world-clock':
+                        initializeWorldClocks(); // Re-render world clocks if needed
+                        break;
+                    case 'alarm-clock':
+                        renderAlarms(); // Ensure alarm list is up-to-date
+                        break;
+                }
+            });
+        });
+
+        // --- Digital Clock Logic ---
+        const digitalClockDisplay = document.getElementById('digitalClockDisplay');
+        const digitalDateDisplay = document.getElementById('digitalDateDisplay');
+        const digitalAmpmDisplay = document.getElementById('digitalAmpmDisplay');
+
+        /**
+         * Updates the digital clock display with the current time and date.
+         */
+        function updateDigitalClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            let ampm = "AM";
+
+            if (hours >= 12) {
+                ampm = "PM";
+            }
+            if (hours > 12) {
+                hours -= 12;
+            }
+            if (hours === 0) {
+                hours = 12;
+            }
+            hours = String(hours).padStart(2, '0');
+
+            digitalClockDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+            digitalAmpmDisplay.textContent = ampm;
+
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            };
+            digitalDateDisplay.textContent = now.toLocaleDateString(undefined, options);
+        }
+
+        // --- Analog Clock Logic ---
+        const analogHourHand = document.getElementById('analog-hour');
+        const analogMinuteHand = document.getElementById('analog-minute');
+        const analogSecondHand = document.getElementById('analog-second');
+
+        /**
+         * Sets the analog clock hands based on the current time.
+         */
+        function setAnalogClock() {
+            const now = new Date();
+            const seconds = now.getSeconds();
+            const minutes = now.getMinutes();
+            const hours = now.getHours();
+
+            const secondsDegrees = ((seconds / 60) * 360) + 90;
+            const minutesDegrees = ((minutes / 60) * 360) + ((seconds / 60) * 6) + 90;
+            const hoursDegrees = ((hours / 12) * 360) + ((minutes / 60) * 30) + 90;
+
+            analogSecondHand.style.transform = `translateX(-50%) rotate(${secondsDegrees}deg)`;
+            analogMinuteHand.style.transform = `translateX(-50%) rotate(${minutesDegrees}deg)`;
+            analogHourHand.style.transform = `translateX(-50%) rotate(${hoursDegrees}deg)`;
+        }
+
+        // --- Timer Logic ---
+        const timerInputHours = document.getElementById('timerInputHours');
+        const timerInputMinutes = document.getElementById('timerInputMinutes');
+        const timerInputSeconds = document.getElementById('timerInputSeconds');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const timerStartButton = document.getElementById('timerStartButton');
+        const timerPauseButton = document.getElementById('timerPauseButton');
+        const timerResetButton = document.getElementById('timerResetButton');
+
+        let timerCountdownInterval;
+        let timerTotalSeconds = 0;
+        let timerIsPaused = false;
+
+        /**
+         * Updates the timer display based on the remaining totalSeconds.
+         */
+        function updateTimerDisplay() {
+            const hours = Math.floor(timerTotalSeconds / 3600);
+            const minutes = Math.floor((timerTotalSeconds % 3600) / 60);
+            const seconds = timerTotalSeconds % 60;
+            timerDisplay.textContent = `${formatTimeTwoDigits(hours)}:${formatTimeTwoDigits(minutes)}:${formatTimeTwoDigits(seconds)}`;
+        }
+
+        /**
+         * Handles the countdown logic for the timer.
+         */
+        function countdownTimer() {
+            if (timerTotalSeconds <= 0) {
+                clearInterval(timerCountdownInterval);
+                timerDisplay.textContent = "00:00:00";
+                alertMessage("Timer finished!");
+                disableTimerControls(false, true, false);
+                // Re-enable inputs
+                timerInputHours.disabled = false;
+                timerInputMinutes.disabled = false;
+                timerInputSeconds.disabled = false;
+                return;
+            }
+            if (!timerIsPaused) {
+                timerTotalSeconds--;
+                updateTimerDisplay();
+            }
+        }
+
+        /**
+         * Sets the initial timer value from input fields.
+         */
+        function setTimerFromInputs() {
+            const h = parseInt(timerInputHours.value) || 0;
+            const m = parseInt(timerInputMinutes.value) || 0;
+            const s = parseInt(timerInputSeconds.value) || 0;
+
+            timerTotalSeconds = (h * 3600) + (m * 60) + s;
+            updateTimerDisplay();
+        }
+
+        /**
+         * Controls the enabled/disabled state of timer buttons and inputs.
+         */
+        function disableTimerControls(startDisabled, pauseDisabled, resetDisabled, inputsDisabled = false) {
+            timerStartButton.disabled = startDisabled;
+            timerPauseButton.disabled = pauseDisabled;
+            timerResetButton.disabled = resetDisabled;
+            timerInputHours.disabled = inputsDisabled;
+            timerInputMinutes.disabled = inputsDisabled;
+            timerInputSeconds.disabled = inputsDisabled;
+        }
+
+        // Timer Event Listeners
+        timerStartButton.addEventListener('click', () => {
+            if (timerTotalSeconds === 0) {
+                setTimerFromInputs();
+                if (timerTotalSeconds === 0) {
+                    alertMessage("Please set a time before starting the timer.");
+                    return;
+                }
+            }
+
+            if (timerIsPaused) {
+                timerIsPaused = false;
+                timerStartButton.textContent = "Running...";
+            } else {
+                clearInterval(timerCountdownInterval);
+                timerCountdownInterval = setInterval(countdownTimer, 1000);
+            }
+            disableTimerControls(true, false, false, true);
+        });
+
+        timerPauseButton.addEventListener('click', () => {
+            timerIsPaused = !timerIsPaused;
+            if (timerIsPaused) {
+                timerPauseButton.textContent = "Resume";
+                timerStartButton.textContent = "Paused"; // Indicate paused state
+                timerStartButton.disabled = false; // Enable start as resume
+            } else {
+                timerPauseButton.textContent = "Pause";
+                timerStartButton.textContent = "Running..."; // Back to running text
+                timerStartButton.disabled = true; // Disable start while running
+            }
+            disableTimerControls(timerIsPaused, false, false, true); // Adjusted for pause/resume logic
+            if(!timerIsPaused) { // If resuming, disable start and keep pause/reset enabled
+                timerStartButton.disabled = true;
+                clearInterval(timerCountdownInterval); // Clear current interval
+                timerCountdownInterval = setInterval(countdownTimer, 1000); // Restart interval
+            }
+        });
+
+        timerResetButton.addEventListener('click', () => {
+            clearInterval(timerCountdownInterval);
+            timerTotalSeconds = 0;
+            timerIsPaused = false;
+            updateTimerDisplay();
+            timerInputHours.value = "00";
+            timerInputMinutes.value = "00";
+            timerInputSeconds.value = "00";
+            disableTimerControls(false, true, true, false);
+            timerStartButton.textContent = "Start";
+            timerPauseButton.textContent = "Pause";
+        });
+
+        timerInputHours.addEventListener('change', setTimerFromInputs);
+        timerInputMinutes.addEventListener('change', setTimerFromInputs);
+        timerInputSeconds.addEventListener('change', setTimerFromInputs);
+
+        // --- Stopwatch Logic ---
+        const stopwatchDisplay = document.getElementById('stopwatchDisplay');
+        const stopwatchStartButton = document.getElementById('stopwatchStartButton');
+        const stopwatchPauseButton = document.getElementById('stopwatchPauseButton');
+        const stopwatchResetButton = document.getElementById('stopwatchResetButton');
+
+        let stopwatchStartTime;
+        let stopwatchElapsedTime = 0;
+        let stopwatchInterval;
+        let stopwatchIsRunning = false;
+
+        /**
+         * Updates the stopwatch display.
+         */
+        function updateStopwatchDisplay() {
+            const hours = Math.floor(stopwatchElapsedTime / 3600000);
+            const minutes = Math.floor((stopwatchElapsedTime % 3600000) / 60000);
+            const seconds = Math.floor((stopwatchElapsedTime % 60000) / 1000);
+            stopwatchDisplay.textContent = `${formatTimeTwoDigits(hours)}:${formatTimeTwoDigits(minutes)}:${formatTimeTwoDigits(seconds)}`;
+        }
+
+        /**
+         * Starts or resumes the stopwatch.
+         */
+        function startStopwatch() {
+            if (!stopwatchIsRunning) {
+                stopwatchIsRunning = true;
+                stopwatchStartTime = Date.now() - stopwatchElapsedTime;
+                stopwatchInterval = setInterval(() => {
+                    stopwatchElapsedTime = Date.now() - stopwatchStartTime;
+                    updateStopwatchDisplay();
+                }, 1000);
+
+                stopwatchStartButton.disabled = true;
+                stopwatchPauseButton.disabled = false;
+                stopwatchResetButton.disabled = false;
+                stopwatchStartButton.textContent = "Running...";
+            }
+        }
+
+        /**
+         * Pauses the stopwatch.
+         */
+        function pauseStopwatch() {
+            if (stopwatchIsRunning) {
+                stopwatchIsRunning = false;
+                clearInterval(stopwatchInterval);
+                stopwatchStartButton.disabled = false;
+                stopwatchPauseButton.disabled = true;
+                stopwatchResetButton.disabled = false;
+                stopwatchStartButton.textContent = "Resume";
+            }
+        }
+
+        /**
+         * Resets the stopwatch.
+         */
+        function resetStopwatch() {
+            clearInterval(stopwatchInterval);
+            stopwatchIsRunning = false;
+            stopwatchElapsedTime = 0;
+            updateStopwatchDisplay();
+
+            stopwatchStartButton.disabled = false;
+            stopwatchPauseButton.disabled = true;
+            stopwatchResetButton.disabled = true;
+            stopwatchStartButton.textContent = "Start";
+        }
+
+        // Stopwatch Event Listeners
+        stopwatchStartButton.addEventListener('click', startStopwatch);
+        stopwatchPauseButton.addEventListener('click', pauseStopwatch);
+        stopwatchResetButton.addEventListener('click', resetStopwatch);
+
+        // --- World Clock Logic ---
+        const worldClockGrid = document.getElementById('worldClockGrid');
+        const worldCities = [
+            { name: "New York", timezone: "America/New_York" },
+            { name: "London", timezone: "Europe/London" },
+            { name: "Paris", timezone: "Europe/Paris" },
+            { name: "Tokyo", timezone: "Asia/Tokyo" },
+            { name: "Sydney", timezone: "Australia/Sydney" },
+            { name: "Dubai", timezone: "Asia/Dubai" },
+            { name: "Mumbai", timezone: "Asia/Kolkata" },
+            { name: "Los Angeles", timezone: "America/Los_Angeles" }
+        ];
+
+        /**
+         * Creates an HTML element for a single city's clock.
+         */
+        function createWorldCityClockElement(cityName, timezoneId) {
+            const cityClockDiv = document.createElement('div');
+            cityClockDiv.className = 'world-city-card';
+            cityClockDiv.id = `world-clock-${cityName.replace(/\s/g, '-')}`;
+
+            cityClockDiv.innerHTML = `
+                <div class="world-city-name">${cityName}</div>
+                <div class="world-time-display" id="world-time-${cityClockDiv.id}">--:--:--</div>
+                <div class="world-date-display" id="world-date-${cityClockDiv.id}">-- -- --</div>
+            `;
+            return cityClockDiv;
+        }
+
+        /**
+         * Updates the time and date for a specific world city clock.
+         */
+        function updateWorldCityClock(cityId, timezoneId) {
+            const now = new Date();
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: timezoneId
+            };
+            const dateOptions = {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                timeZone: timezoneId
+            };
+
+            const formattedTime = now.toLocaleTimeString('en-US', timeOptions);
+            const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+
+            document.getElementById(`world-time-${cityId}`).textContent = formattedTime;
+            document.getElementById(`world-date-${cityId}`).textContent = formattedDate;
+        }
+
+        /**
+         * Initializes and updates all world clocks.
+         */
+        function initializeWorldClocks() {
+            worldClockGrid.innerHTML = ''; // Clear previous clocks
+            worldCities.forEach(city => {
+                const cityClockElement = createWorldCityClockElement(city.name, city.timezone);
+                worldClockGrid.appendChild(cityClockElement);
+                updateWorldCityClock(cityClockElement.id, city.timezone);
+            });
+        }
+
+        // World clock updates will happen via the main interval
+
+        // --- Alarm Clock Logic ---
+        const alarmHoursSelect = document.getElementById('alarmHours');
+        const alarmMinutesSelect = document.getElementById('alarmMinutes');
+        const alarmAmpmSelect = document.getElementById('alarmAmpm');
+        const setAlarmButton = document.getElementById('setAlarmButton');
+        const stopAlarmButton = document.getElementById('stopAlarmButton');
+        const alarmList = document.getElementById('alarmList');
+
+        let alarms = []; // Each alarm object: { id, hours, minutes, ampm, fullTime, isRinging }
+
+        /**
+         * Populates the hour and minute select dropdowns for the alarm.
+         */
+        function populateAlarmTimeSelects() {
+            for (let i = 1; i <= 12; i++) {
+                const option = document.createElement('option');
+                option.value = formatTimeTwoDigits(i);
+                option.textContent = formatTimeTwoDigits(i);
+                alarmHoursSelect.appendChild(option);
+            }
+            for (let i = 0; i < 60; i++) {
+                const option = document.createElement('option');
+                option.value = formatTimeTwoDigits(i);
+                option.textContent = formatTimeTwoDigits(i);
+                alarmMinutesSelect.appendChild(option);
+            }
+        }
+
+        /**
+         * Adds a new alarm based on selected time inputs.
+         */
+        function addAlarm() {
+            const hours = alarmHoursSelect.value;
+            const minutes = alarmMinutesSelect.value;
+            const ampm = alarmAmpmSelect.value;
+            const fullTime = `${hours}:${minutes} ${ampm}`;
+
+            // Check for duplicates
+            if (alarms.some(alarm => alarm.fullTime === fullTime)) {
+                alertMessage("Alarm at this time already exists!");
+                return;
+            }
+
+            const newAlarmId = Date.now(); // Simple unique ID
+
+            const newAlarm = {
+                id: newAlarmId,
+                hours: hours,
+                minutes: minutes,
+                ampm: ampm,
+                fullTime: fullTime,
+                isRinging: false
+            };
+
+            alarms.push(newAlarm);
+            renderAlarms();
+            alertMessage(`Alarm set for ${fullTime}`);
+        }
+
+        /**
+         * Renders (or re-renders) the list of active alarms.
+         */
+        function renderAlarms() {
+            alarmList.innerHTML = ''; // Clear existing list
+
+            if (alarms.length === 0) {
+                alarmList.innerHTML = '<p class="text-gray-400 text-sm">No alarms set yet.</p>';
+                stopAlarmButton.disabled = true;
+                return;
+            }
+
+            alarms.forEach(alarm => {
+                const alarmItem = document.createElement('div');
+                alarmItem.id = `alarm-item-${alarm.id}`;
+                alarmItem.className = `alarm-item ${alarm.isRinging ? 'alarm-item-ringing' : ''}`;
+
+                alarmItem.innerHTML = `
+                    <span>${alarm.fullTime}</span>
+                    <button class="delete-button" data-id="${alarm.id}">Delete</button>
+                `;
+                alarmList.appendChild(alarmItem);
+            });
+
+            document.querySelectorAll('.delete-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const idToDelete = parseInt(event.target.dataset.id);
+                    alarms = alarms.filter(alarm => alarm.id !== idToDelete);
+                    renderAlarms();
+                    alertMessage("Alarm deleted.");
+                    if (alarms.length === 0 && alarmSound.paused) {
+                         stopAlarmButton.disabled = true;
+                    }
+                });
+            });
+        }
+
+        /**
+         * Stops the alarm sound and resets all ringing alarms' states.
+         */
+        function stopAlarm() {
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+
+            alarms.forEach(alarm => {
+                if (alarm.isRinging) {
+                    alarm.isRinging = false;
+                    const alarmElement = document.getElementById(`alarm-item-${alarm.id}`);
+                    if (alarmElement) {
+                        alarmElement.classList.remove('alarm-item-ringing');
+                    }
+                }
+            });
+
+            stopAlarmButton.disabled = true;
+            alertMessage("Alarm stopped.");
+        }
+
+        // Alarm Event Listeners
+        setAlarmButton.addEventListener('click', addAlarm);
+        stopAlarmButton.addEventListener('click', stopAlarm);
+
+        // --- Main Update Loop ---
+        /**
+         * The main update loop that runs every second to refresh all clocks and check alarms.
+         */
+        function mainUpdateLoop() {
+            updateDigitalClock();
+            setAnalogClock();
+
+            // Only update world clocks if their section is active to save resources
+            if (currentActiveModule === 'world-clock') {
+                worldCities.forEach(city => {
+                    const cityId = `world-clock-${city.name.replace(/\s/g, '-')}`;
+                    updateWorldCityClock(cityId, city.timezone);
+                });
+            }
+
+            // Alarm checking is integrated into updateDigitalClock now
+        }
+
+        // --- Initializations on Window Load ---
+        window.onload = function() {
+            populateAlarmTimeSelects();
+            setTimerFromInputs(); // Initialize timer display
+            updateStopwatchDisplay(); // Initialize stopwatch display
+            initializeWorldClocks(); // Populate world clocks initially
+            renderAlarms(); // Populate alarm list initially
+
+            // Start the main update loop
+            setInterval(mainUpdateLoop, 1000);
+        };
+    </script>
+</body>
+</html>
